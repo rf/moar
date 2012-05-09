@@ -3,6 +3,7 @@ var util = require('utile');
 var wordwrap = require('wordwrap');
 var _ = require('underscore');
 var tty = require('tty');
+var EventEmitter = require('events').EventEmitter;
 
 var size = process.stdout.getWindowSize();
 var height = size[1] - 1;
@@ -11,11 +12,12 @@ var width = size[0] - 1;
 var wrap = wordwrap(width, {mode: 'hard'});
 
 module.exports = function (options) {
-  var exports = {};
+  var exports = new EventEmitter();
   var buffer = [];
   var start = 0;
   var stdin;
   var searchBuffer = '';
+  var visible = 0;
 
   var mode = 'command';
 
@@ -45,24 +47,29 @@ module.exports = function (options) {
         .move(height, 0)
         .write('/' + searchBuffer);
     }
+
+    visible = buffer.length;
   }
 
   function write (data) {
     buffer = buffer.concat((wrap(data).split('\n')));
+    if (visible < height) refresh();
   }
 
   function listener (chunk, key) {
     if (key) {
       if (key.name == 'up') start -= 1;
-      if (key.name == 'down') start += 1;
+      if (key.name == 'down' || (key.name == 'enter' && mode != 'search'))
+        start += 1;
 
       if (key.name == 'pageup') start -= height;
-      if (key.name == 'pagedown') start += height;
+      if (key.name == 'pagedown' || (chunk == ' ' && mode != 'search')) start += height;
 
       if (key.name == 'q' || (key.ctrl && key.name == 'c')) {
         tty.setRawMode(false);
         term.clear();
         process.stdin.removeListener('keypress', listener);
+        exports.emit('done');
       }
 
       if (key.name == 'escape') {
@@ -76,7 +83,7 @@ module.exports = function (options) {
 
       if (key.name == 'enter') {
         if (mode == 'search') {
-          mode == 'searchExecute';
+          mode = 'searchExecute';
         } 
       }
     }
@@ -111,8 +118,3 @@ module.exports = function (options) {
   return exports;
 };
 
-var test = module.exports();
-
-test.write('hello');
-
-require('child_process').spawn('find', ['/']).stdout.on('data', test.write);
