@@ -14,9 +14,11 @@ var wrap = wordwrap(width, {mode: 'hard'});
 module.exports = function (options) {
   var exports = new EventEmitter();
   var buffer = [];
+  var previousStart = 0;
   var start = 0;
   var stdin;
   var searchBuffer = '';
+  var searchDirection;
   var visible = 0;
 
   var mode = 'command';
@@ -32,6 +34,12 @@ module.exports = function (options) {
           .write(item);
     });
 
+    drawPrompt();
+
+    visible = buffer.length;
+  }
+
+  function drawPrompt () {
     if (mode == 'command') {
       term
         .move(height, 0)
@@ -45,10 +53,8 @@ module.exports = function (options) {
         .move(height, 0)
         .clearCharacters(width)
         .move(height, 0)
-        .write('/' + searchBuffer);
+        .write(searchDirection + searchBuffer);
     }
-
-    visible = buffer.length;
   }
 
   function write (data) {
@@ -95,13 +101,26 @@ module.exports = function (options) {
     if (chunk == '/') {
       if (mode == 'command') {
         mode = 'search';
+        searchDirection = '/';
+      }
+    }
+
+    if (chunk == '?') {
+      if (mode == 'command') {
+        mode = 'search';
+        searchDirection = '?';
       }
     }
 
     if (start < 0) start = 0;
     if (start > buffer.length - height) start = buffer.length - height;
 
-    refresh();
+    if (start != previousStart) 
+      refresh();
+
+    drawPrompt();
+
+    previousStart = start;
   }
 
   process.nextTick(function () {
