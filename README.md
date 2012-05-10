@@ -1,5 +1,7 @@
 # moar
 
+<img src="https://github.com/russfrank/moar/raw/master/shot.png">
+
 a pager for nodejs.  Install it with npm
 
 ```
