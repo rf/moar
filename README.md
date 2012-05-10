@@ -1,6 +1,32 @@
 # moar
 
-a pager for nodejs.
+a pager for nodejs.  Install it with npm
+
+```
+$ npm i -g moar
+```
+
+now you can `moar` some files
+
+```
+$ moar README.md
+```
+
+It's really meant to be used programatically.  It partially implements the 
+writable stream interface, so you can just pipe stuff into it.  It's also
+an EventEmitter; it emits `done` when the user presses q or ctrl+c to stop
+viewing the data.
+
+```javascript
+var moar = require('moar')();
+
+moar.write('some stuff');
+moar.write('yay');
+
+require('request')('http://nodejs.org').pipe(moar);
+
+moar.on('done', process.exit);
+```
 
 ## what?
 
@@ -21,3 +47,4 @@ instinct to re-implement $PAGER's functionality in javascript.  But without
 using either a native module or internal node APIs, it's just not possible;
 and even with the internal APIs it's ugly (would probably have to hit a file
 first).
+
