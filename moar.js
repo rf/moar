@@ -22,29 +22,71 @@ module.exports = function (options) {
   var commandBuffer = '';
   var searchDirection;
   var visible = 0;
+
+  // possible modes:
+  //   'search': entering a search string
+  //   'searchExecute': executing a search
+  //   'command': prompt with : for command, doesnt do anything currently
   var mode = 'command';
+  var currentSearchIndex = null;
 
   term.clear();
 
   // actually run the search
   function search () {
     var regex = new RegExp(commandBuffer);
+    var first, last;
     for (var i = start; i < start + height; i++) {
       if (!searchResults[i] && buffer[i] !== undefined) {
         searchResults[i] = buffer[i].match(regex);
+        if (!currentSearchIndex && searchResults[i]) currentSearchIndex = i;
       }
     }
   }
 
+  // seek forward and back in the search results
+  function searchSeek (step) {
+    var index = currentSearchIndex + step;
+
+    while (index < buffer.length && index > 0) {
+      if (searchResults[index]) {
+        currentSearchIndex = index;
+        break;
+      }
+      index += step;
+    }
+
+    if (currentSearchIndex > height / 2) 
+      start = currentSearchIndex - (height / 2);
+
+    search();
+    refresh();
+  }
+
+  function searchReset (direction) {
+    mode = 'search';
+    searchDirection = direction;
+    commandBuffer = '';
+    searchResults = [];
+  }
+
   function refresh () {
+    if (start < 0) start = 0;
+    if (start > buffer.length - height) start = buffer.length - height;
+
     _.each(buffer.slice(start, start + height), function (item, index) {
         term
           .move(index, 0)
           .clearCharacters(width)
           .move(index, 0);
 
-        if (searchResults[index + start]) term.write(item.blue);
-        else term.write(item);
+        if (currentSearchIndex == index + start) {
+          var searchIndex = searchResults[index + start].index;
+          var searchLength = searchResults[index + start][0].length;
+          term.write(item.slice(0, searchResults[index + start].index));
+          term.write(searchResults[index + start][0].underline.cyan);
+          term.write(item.slice(searchIndex + searchLength));
+        } else term.write(item);
     });
 
     drawPrompt();
@@ -114,30 +156,19 @@ module.exports = function (options) {
       }
     }
 
+    if (mode == 'searchExecute') {
+      if (chunk == 'n' && searchDirection == '/') searchSeek(+1);
+      if (chunk == 'N' && searchDirection == '/') searchSeek(-1);
+      if (chunk == 'n' && searchDirection == '?') searchSeek(-1);
+      if (chunk == 'N' && searchDirection == '?') searchSeek(+1);
+    }
+
     if (mode == 'search' && (key && key.name != 'backspace') && chunk !== undefined) {
       commandBuffer += chunk;
     }
 
-    if (chunk == '/') {
-      if (mode != 'search') {
-        mode = 'search';
-        searchDirection = '/';
-        commandBuffer = '';
-        searchResults = [];
-      }
-    }
-
-    if (chunk == '?') {
-      if (mode != 'search') {
-        mode = 'search';
-        searchDirection = '?';
-        commandBuffer = '';
-        searchResults = [];
-      }
-    }
-
-    if (start < 0) start = 0;
-    if (start > buffer.length - height) start = buffer.length - height;
+    if (chunk == '/' && mode != search) searchReset('/');
+    if (chunk == '?' && mode != search) searchReset('?');
 
     if (mode == 'searchExecute') search();
 
