@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+
+var path = require('path');
+var argv = require('optimist').argv;
+var fs = require('fs');
+
+if (argv._[0]) {
+  var moar = require(path.join(__dirname, '..', 'moar.js'))();
+  fs.createReadStream(path.resolve(argv._[0])).pipe(moar);
+  moar.on('done', process.exit);
+} else {
+  // this won't work, moar needs another fd to the tty, not sure if its even
+  // possible in a cross platform manner in node
+  // process.stdin.pipe(moar);
+  console.log('moar doesnt yet support taking data from stdin sorry');
+  process.exit(1);
+}
