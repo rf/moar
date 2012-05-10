@@ -68,6 +68,7 @@ module.exports = function (options) {
     searchDirection = direction;
     commandBuffer = '';
     searchResults = [];
+    currentSearchIndex = null;
   }
 
   function refresh () {
