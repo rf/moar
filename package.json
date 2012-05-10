@@ -1,10 +1,12 @@
 {
    "name"         : "moar",
    "description"  : "pager for node",
-   "version"      : "0.0.0",
+   "preferGlobal" : true,
+   "version"      : "0.0.1",
    "homepage"     : "http://github.com/russfrank/moar",
-   "author"       : "Russ Frank <russ.frank@rutgers.edu>",
+   "author"       : "Russ Frank <me@russfrank.us>",
    "engines"      : {"node": "> 0.6.x"},
+   "bin"          : {"moar": "bin/moar"},
    "dependencies" : {
       "node-terminal": "0.1.x", 
       "utile": "0.0.x", 
