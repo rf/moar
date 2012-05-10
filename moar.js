@@ -132,7 +132,7 @@ module.exports = function (options) {
       if (key.name == 'j') start += 1;
       if (key.name == 'k') start -= 1;
 
-      if (key.name == 'q' || (key.ctrl && key.name == 'c')) {
+      if ((key.name == 'q' || (key.ctrl && key.name == 'c')) && mode != 'search') {
         tty.setRawMode(false);
         term.clear();
         process.stdin.removeListener('keypress', listener);
