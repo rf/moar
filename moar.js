@@ -6,6 +6,9 @@ var tty = require('tty');
 var colors = require('colors');
 var EventEmitter = require('events').EventEmitter;
 
+
+var fs = require('fs'); var path = require('path');
+
 var size = process.stdout.getWindowSize();
 var height = size[1] - 1;
 var width = size[0] - 1;
@@ -13,51 +16,96 @@ var width = size[0] - 1;
 var wrap = wordwrap(width, {mode: 'hard'});
 
 module.exports = function (options) {
-  var exports = new EventEmitter();
-  var buffer = [];
-  var searchResults = [];
-  var previousStart = 0;
-  var commandBufferLength = 0;
-  var start = 0;
+  var exports = new EventEmitter();   // based on an EE
+  var buffer = [];                    // data, split into lines of length width
+  var searchResults = [];         // searchResults[i] = buffer[i].match(regex);
+  var previousStart = 0;          // we only refresh when start has changed
+  var start = 0;                  // first line of buffer displayed on screen
   var commandBuffer = '';
-  var searchDirection;
-  var visible = 0;
+  var searchDirection;            // either ? or /
+  var visible = 0;                // only used on initial draw
+  var currentSearchIndex = null;  // current index of search
 
   // possible modes:
   //   'search': entering a search string
   //   'searchExecute': executing a search
   //   'command': prompt with : for command, doesnt do anything currently
   var mode = 'command';
-  var currentSearchIndex = null;
 
   term.clear();
 
   // actually run the search
   function search () {
+    var step = searchDirection == '?' ? -1 : +1;
+    var index = start + step;
+    var wrapped = 0;
+    var lineCount = 0;
+    var found = false;
     var regex = new RegExp(commandBuffer);
-    var first, last;
-    for (var i = start; i < start + height; i++) {
-      if (!searchResults[i] && buffer[i] !== undefined) {
-        searchResults[i] = buffer[i].match(regex);
-        if (!currentSearchIndex && searchResults[i]) currentSearchIndex = i;
+
+    while (wrapped <= 1 && lineCount < height) {
+      if (!searchResults[index] && buffer[index] !== undefined) {
+        searchResults[index] = buffer[index].match(regex);
+
+        // this is how we mark a line as "we searched this already but found
+        // nothing".  Unfortunately each searchResult space is a tri-state; it
+        // can either be 'searched with result', 'searched without result' or
+        // 'not searched at all'
+        if (!searchResults[index]) searchResults[index] = {index: -1};
       }
+
+      if (searchResults[index] && searchResults[index].index != -1) {
+        found = true;
+        if (currentSearchIndex === null) currentSearchIndex = index;
+      }
+
+      if (found) { 
+        lineCount += 1;
+      }
+
+      index += step;
+
+      if (index < 0) {
+        index = buffer.length - 1;
+        wrapped += 1;
+      }
+
+      if (index >= buffer.length) {
+        index = 0;
+        wrapped += 1;
+      }
+    }
+
+    // no search results found
+    if (wrapped > 1) {
+      mode = 'searchFailure';
     }
   }
 
   // seek forward and back in the search results
   function searchSeek (step) {
     var index = currentSearchIndex + step;
+    var wrapped = 0;
 
-    while (index < buffer.length && index > 0) {
-      if (searchResults[index]) {
+    while (wrapped <= 1) {
+      if (searchResults[index] && searchResults[index].index != -1) {
         currentSearchIndex = index;
         break;
       }
       index += step;
+      if (index < 0) {
+        index = buffer.length - 1;
+        wrapped += 1;
+      }
+
+      if (index >= buffer.length) {
+        index = 0;
+        wrapped += 1;
+      }
     }
 
-    if (currentSearchIndex > height / 2) 
-      start = currentSearchIndex - (height / 2);
+    if (wrapped > 1) currentSearchIndex = null; // ie nothing was found
+    else start = Math.max(0, currentSearchIndex - (height / 2));
 
     search();
     refresh();
@@ -72,16 +120,18 @@ module.exports = function (options) {
   }
 
   function refresh () {
-    if (start < 0) start = 0;
     if (start > buffer.length - height) start = buffer.length - height;
+    if (start < 0) start = 0;
 
+    // print each line
     _.each(buffer.slice(start, start + height), function (item, index) {
         term
           .move(index, 0)
           .clearCharacters(width)
           .move(index, 0);
 
-        if (currentSearchIndex == index + start) {
+        // nasty hacky crap to highlight the search term
+        if (currentSearchIndex == (index + start)) {
           var searchIndex = searchResults[index + start].index;
           var searchLength = searchResults[index + start][0].length;
           term.write(item.slice(0, searchResults[index + start].index));
@@ -96,20 +146,19 @@ module.exports = function (options) {
   }
 
   function drawPrompt () {
-    if (mode == 'command') {
-      term
-        .move(height, 0)
-        .clearCharacters(width)
-        .move(height, 0)
-        .write(':' + commandBuffer);
-    }
+    term
+      .move(height, 0)
+      .clearCharacters(width)
+      .move(height, 0);
 
-    if (mode == 'search' || mode == 'searchExecute') {
-      term
-        .move(height, 0)
-        .clearCharacters(width)
-        .move(height, 0)
-        .write(searchDirection + commandBuffer);
+    if (mode == 'command') {
+      term.write(':' + commandBuffer);
+    } else if (mode == 'search') {
+      term.write(searchDirection + commandBuffer);
+    } else if (mode == 'searchExecute') {
+      term.write(searchDirection + commandBuffer.cyan.underline);
+    } else if (mode == 'searchFailure') {
+      term.write("no results found".red);
     }
   }
 
@@ -129,8 +178,8 @@ module.exports = function (options) {
       if (key.name == 'pageup') start -= height;
       if (key.name == 'pagedown' || (chunk == ' ' && mode != 'search')) start += height;
 
-      if (key.name == 'j') start += 1;
-      if (key.name == 'k') start -= 1;
+      if (key.name == 'j' && mode != 'search') start += 1;
+      if (key.name == 'k' && mode != 'search') start -= 1;
 
       if ((key.name == 'q' || (key.ctrl && key.name == 'c')) && mode != 'search') {
         tty.setRawMode(false);
@@ -144,13 +193,16 @@ module.exports = function (options) {
         commandBuffer = '';
       }
 
-      if (key.name == 'backspace') {
+      if (key.name == 'backspace' && mode == 'search') {
         commandBuffer = commandBuffer.slice(0, commandBuffer.length - 1);
       }
 
       if (key.name == 'enter') {
         if (mode == 'search') {
           mode = 'searchExecute';
+          currentSearchIndex = start;
+          if (searchDirection == '/') searchSeek(+1);
+          if (searchDirection == '?') searchSeek(-1);
           search();
           refresh();
         } 
@@ -168,12 +220,15 @@ module.exports = function (options) {
       commandBuffer += chunk;
     }
 
-    if (chunk == '/' && mode != search) searchReset('/');
-    if (chunk == '?' && mode != search) searchReset('?');
+    if (chunk == '/' && mode != 'search') searchReset('/');
+    if (chunk == '?' && mode != 'search') searchReset('?');
 
-    if (mode == 'searchExecute') search();
-
-    if (start != previousStart) refresh();
+    if (start != previousStart) {
+      refresh();
+      if (mode == 'searchExecute') {
+        search();
+      }
+    }
 
     drawPrompt();
 

@@ -37,7 +37,7 @@ way to page data cross platform. Also, I don't know how your $PAGER works, or
 if it's going to be okay with the data I'd like to give it.
 
 Thus, I present `moar`.  It will (eventually) support most of the features
-`less` supports.  But instead of being written in C, it's written in javascript
+pagers support.  But instead of being written in C, it's written in javascript
 so we can all hack on it and have fun with it and benefit from the awesome
 cross platform ansi-to-win32-console-api magic that the libuv folks have
 slaved over.
