@@ -17,9 +17,8 @@ $ npm i moar
 
 and use it like this
 
-```
+```javascript
 var moar = require('moar');
-
 require('request')('http://nodejs.org').pipe(moar).on('end', moar.end);
 ```
 
