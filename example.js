@@ -1,11 +1,14 @@
-var moar = require('./moar');
-var test = moar();
+var moar = require('./index');
 
-test.write('hello');
+moar.write('hello');
 
-test.on('done', process.exit);
+var r1 = require('request')('http://nodejs.org').pipe(moar);
+var r2 = require('request')('http://google.org').pipe(moar);
 
-//require('child_process').spawn('find', ['/']).stdout.on('data', test.write);
-require('request')('http://nodejs.org').pipe(test);
-require('request')('http://google.org').pipe(test);
+require('async').parallel([
+  function (callback) { r1.on('end', callback); },
+  function (callback) { r2.on('end', callback); },
+], moar.end);
+
+moar.on('done', process.exit);
 

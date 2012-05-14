@@ -1,13 +1,13 @@
 {
    "name"         : "moar",
-   "description"  : "pager for node",
+   "description"  : "$PAGER abstraction for node",
    "preferGlobal" : true,
-   "version"      : "0.0.3",
+   "version"      : "0.0.4",
    "homepage"     : "http://github.com/russfrank/moar",
    "author"       : "Russ Frank <me@russfrank.us>",
    "engines"      : {"node": "> 0.6.x"},
    "bin"          : {"moar": "bin/moar"},
-   "main"         : "./moar",
+   "main"         : "./index",
    "dependencies" : {
       "node-terminal": "0.1.x", 
       "utile": "0.0.x", 

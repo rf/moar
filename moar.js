@@ -6,11 +6,10 @@ var tty = require('tty');
 var colors = require('colors');
 var EventEmitter = require('events').EventEmitter;
 
-
 var fs = require('fs'); var path = require('path');
 
 var size = process.stdout.getWindowSize();
-var height = size[1] - 1;
+var height = size[1] - 2;
 var width = size[0] - 1;
 
 var wrap = wordwrap(width, {mode: 'hard'});
