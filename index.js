@@ -13,9 +13,9 @@ module.exports = (function () {
   }
 
   // less needs -F to handle ansi color escapes properly
-  if (pager == 'less') args = ['-F']; 
+  if (pager == 'less') args = ['-R']; 
 
-  var ps = spawn('less', ['-F'], {customFds: [-1, 1, 2]}); 
+  var ps = spawn(pager, args, {customFds: [-1, 1, 2]}); 
 
   ps.on('exit', function () {
     ps.stdin.emit('done');
