@@ -6,11 +6,16 @@ var tty = require('tty');
 var colors = require('colors');
 var EventEmitter = require('events').EventEmitter;
 
+
 var fs = require('fs'); var path = require('path');
 
 var size = process.stdout.getWindowSize();
-var height = size[1] - 2;
+var height = size[1] - 1;
 var width = size[0] - 1;
+
+// on windows the cursor wants to occupy its own line on the bottom.. or
+// something like that
+if (process.platform == "win32") height--;
 
 var wrap = wordwrap(width, {mode: 'hard'});
 
