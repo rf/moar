@@ -1,7 +1,7 @@
 module.exports = (function () {
 
   // for windows, use the javascript version
-  if (process.platform == "win32") return require('./moar')();
+  if (process.platform == "win32") return require('./moar');
   else return function (options) {
 
     var spawn = require('child_process').spawn;
