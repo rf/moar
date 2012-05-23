@@ -38,6 +38,10 @@ module.exports = function (options) {
 
   term.clear();
 
+  if (options.nowrap) {
+    wrap = function (data) { return data; };
+  }
+
   // actually run the search
   function search () {
     var step = searchDirection == '?' ? -1 : +1;
