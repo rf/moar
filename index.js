@@ -11,11 +11,15 @@ module.exports = (function () {
     if (process.env.PAGER) {
       pager = process.env.PAGER;
     } else {
-      pager = 'less';
+      pager = 'less -R';
     }
 
-    // less needs -R to handle ansi color escapes properly
-    if (pager == 'less') args = ['-R']; 
+    var split = pager.split(' ');
+    if (split.length > 1) {
+      // there are arguments, handle those separately
+      pager = split.shift();
+      args = split;
+    }
 
     var ps = spawn(pager, args, {customFds: [-1, 1, 2]}); 
 
@@ -24,7 +28,6 @@ module.exports = (function () {
     });
 
     return ps.stdin;
-
   };
 
 }());
