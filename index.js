@@ -21,7 +21,7 @@ module.exports = (function () {
       args = split;
     }
 
-    var ps = spawn(pager, args, {customFds: [-1, 1, 2]}); 
+    var ps = spawn(pager, args, {stdio: [null, 1, 2]}); 
 
     ps.on('exit', function () {
       ps.stdin.emit('done');
